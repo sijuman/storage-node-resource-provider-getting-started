@@ -18,10 +18,13 @@
   "main": "./index.js",
   "license": "MIT",
   "dependencies": {
-    "azure-arm-storage": "^0.13.1-preview",
+    "@azure/arm-resources-profile-hybrid-2019-03-01": "^1.0.0",
+    "@azure/arm-storage-profile-2019-03-01-hybrid": "^1.0.0",
+    "@azure/ms-rest-nodeauth": "^2.0.2",
+    "async": "0.2.7",
     "azure-arm-resource": "^1.4.4-preview",
-    "ms-rest-azure": "^1.14.3",
-    "async": "0.2.7"
+    "azure-arm-storage": "^0.13.1-preview",
+    "ms-rest-azure": "^1.14.3"
   },
   "homepage": "https://github.com/Azure-Samples/storage-node-resource-provider-getting-started",
   "repository": {

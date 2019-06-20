@@ -7,32 +7,31 @@
 
 var util = require('util');
 var async = require('async');
-var msRestAzure = require('ms-rest-azure');
-var ResourceManagementClient = require('azure-arm-resource').ResourceManagementClient;
-var StorageManagementClient = require('azure-arm-storage');
+var msRestAzure = require('@azure/ms-rest-nodeauth');
+var ResourceManagementClient = require('@azure/arm-resources-profile-hybrid-2019-03-01');
+var StorageManagementClient = require('@azure/arm-storage-profile-2019-03-01-hybrid');
 
 _validateEnvironmentVariables();
 var clientId = process.env['CLIENT_ID'];
-var domain = process.env['DOMAIN'];
+var tenantId = process.env['TENANT_ID'];
 var secret = process.env['APPLICATION_SECRET'];
 var subscriptionId = process.env['AZURE_SUBSCRIPTION_ID'];
+var base_url= process.env['ARM_ENDPOINT'];
 var resourceClient, storageClient;
+var domain = process.env['DOMAIN'];
 //Sample Config
 var randomIds = {};
 var location = 'westus';
 var accType = 'Standard_LRS';
 var resourceGroupName = _generateRandomId('testrg', randomIds);
 var storageAccountName = _generateRandomId('testacc', randomIds);
-var expectedServerFarmId;
 
-  ///////////////////////////////////////////
- //Entrypoint for the storage-sample script/
-///////////////////////////////////////////
 
 msRestAzure.loginWithServicePrincipalSecret(clientId, secret, domain, function (err, credentials) {
   if (err) return console.log(err);
-  resourceClient = new ResourceManagementClient(credentials, subscriptionId);
-  storageClient = new StorageManagementClient(credentials, subscriptionId);
+
+  resourceClient = new ResourceManagementClient(credentials, subscriptionId, base_url);
+  storageClient = new StorageManagementClient(credentials, subscriptionId, base_url);
   // Work flow of this sample:
   // Setup. Create a resource group 
   // 1. Create a storage account
@@ -210,7 +209,7 @@ function getStorageAccount(callback) {
 function updateStorageAccount(callback) {
   var updateParameters = {
     sku: {
-      name: 'Standard_GRS'
+      name: 'Standard_LRS'
     }
   };
   console.log('\n-->Updating storage account : ' + storageAccountName + ' with parameters:\n' + util.inspect(updateParameters));
@@ -230,9 +229,11 @@ function listUsage(callback) {
 function _validateEnvironmentVariables() {
   var envs = [];
   if (!process.env['CLIENT_ID']) envs.push('CLIENT_ID');
-  if (!process.env['DOMAIN']) envs.push('DOMAIN');
+  if (!process.env['ARM_ENDPOINT']) envs.push('ARM_ENDPOINT');
   if (!process.env['APPLICATION_SECRET']) envs.push('APPLICATION_SECRET');
   if (!process.env['AZURE_SUBSCRIPTION_ID']) envs.push('AZURE_SUBSCRIPTION_ID');
+  if (!process.env['DOMAIN']) envs.push('DOMAIN');
+  if (!process.env['TENANT_ID']) envs.push('TENANT_ID');
   if (envs.length > 0) {
     throw new Error(util.format('please set/export the following environment variables: %s', envs.toString()));
   }
