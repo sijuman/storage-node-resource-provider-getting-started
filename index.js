@@ -4,159 +4,224 @@
  * license information.
  */
 'use strict';
-
+var Environment = require("@azure/ms-rest-azure-env");
 var util = require('util');
 var async = require('async');
 var msRestAzure = require('@azure/ms-rest-nodeauth');
-var ResourceManagementClient = require('@azure/arm-resources-profile-hybrid-2019-03-01');
-var StorageManagementClient = require('@azure/arm-storage-profile-2019-03-01-hybrid');
-
-_validateEnvironmentVariables();
-var clientId = process.env['CLIENT_ID'];
-var tenantId = process.env['TENANT_ID'];
-var secret = process.env['APPLICATION_SECRET'];
+var ResourceManagementClient = require('@azure/arm-resources-profile-hybrid-2019-03-01').ResourceManagementClient;
+var StorageManagementClient = require('@azure/arm-storage-profile-2019-03-01-hybrid').StorageManagementClient;
+const request = require('request');
+const https = require('https');
+const fetch = require("node-fetch");
+const requestPromise = util.promisify(request);
+ _validateEnvironmentVariables();
+var clientId = process.env['AZURE_CLIENT_ID'];
+var tenantId = process.env['AZURE_TENANT_ID']; //"adfs"
+var secret = process.env['AZURE_CLIENT_SECRET'];
 var subscriptionId = process.env['AZURE_SUBSCRIPTION_ID'];
-var base_url= process.env['ARM_ENDPOINT'];
+var base_url = process.env['ARM_ENDPOINT'];
 var resourceClient, storageClient;
-var domain = process.env['DOMAIN'];
+
 //Sample Config
 var randomIds = {};
-var location = 'westus';
+var location = 'westus2';
 var accType = 'Standard_LRS';
 var resourceGroupName = _generateRandomId('testrg', randomIds);
 var storageAccountName = _generateRandomId('testacc', randomIds);
 
+// create a map
+var map = {};
+const fetchUrl = base_url + 'metadata/endpoints?api-version=1.0'
 
-msRestAzure.loginWithServicePrincipalSecret(clientId, secret, domain, function (err, credentials) {
-  if (err) return console.log(err);
+function initialize() {
+  // Setting URL and headers for request
+  var options = {
+    url: fetchUrl,
+    headers: {
+      'User-Agent': 'request'
+    },
+    rejectUnauthorized: false
+  };
+  // Return new promise 
+  return new Promise(function (resolve, reject) {
+    // Do async job
+    request.get(options, function (err, resp, body) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(JSON.parse(body));
+      }
+    })
+  })
 
-  resourceClient = new ResourceManagementClient(credentials, subscriptionId, base_url);
-  storageClient = new StorageManagementClient(credentials, subscriptionId, base_url);
-  // Work flow of this sample:
-  // Setup. Create a resource group 
-  // 1. Create a storage account
-  // 2. Get all the account properties
-  // 3. List all the storage accounts in a resource group
-  // 4. List all the storage accounts in a subscription
-  // 5. Get the storage account keys for a given storage account
-  // 6. Rgenerate account keys for a given storage account
-  // 7. Update storage account properties
-  // 8. Check if the storage account name is available
-  // 9. Get the current usage count and the limit for resources under the current subscription
-  
-  async.series([
-    function (callback) {
-      //Setup
-      createResourceGroup(function (err, result, request, response) {
-        if (err) {
-          return callback(err);
-        }
-        callback(null, result);
-      });
-    },
-    function (callback) {
-      //Task 1
-      createStorageAccount(function (err, result, request, response) {
-        if (err) {
-          return callback(err);
-        }
-        console.log('\nThe created storage account result is: \n' + util.inspect(result, { depth: null }));
-        callback(null, result);
-      });
-    },
-    function (callback) {
-      //Task 2
-      getStorageAccount(function (err, result, request, response) {
-        if (err) {
-          return callback(err);
-        }
-        console.log('\n' + util.inspect(result, { depth: null }));
-        callback(null, result);
-      });
-    },
-    function (callback) {
-      //Task 3
-      listStorageAccountsByResourceGroup(function (err, result, request, response) {
-        if (err) {
-          return callback(err);
-        }
-        console.log('\n' + util.inspect(result, { depth: null }));
-        callback(null, result);
-      });
-    },
-    function (callback) {
-      //Task 4
-      listStorageAccounts(function (err, result, request, response) {
-        if (err) {
-          return callback(err);
-        }
-        console.log('\n' + util.inspect(result, { depth: null }));
-        callback(null, result);
-      });
-    },
-    function (callback) {
-      //Task 5
-      listStorageAccountKeys(function (err, result, request, response) {
-        if (err) {
-          return callback(err);
-        }
-        console.log('\n' + util.inspect(result, { depth: null }));
-        callback(null, result);
-      });
-    },
-    function (callback) {
-      //Task 6
-      regenerateStorageAccountKeys(function (err, result, request, response) {
-        if (err) {
-          return callback(err);
-        }
-        console.log('\n' + util.inspect(result, { depth: null }));
-        callback(null, result);
-      });
-    },
-    function (callback) {
-      //Task 7
-      updateStorageAccount(function (err, result, request, response) {
-        if (err) {
-          return callback(err);
-        }
-        console.log('\nUpdated result is:\n' + util.inspect(result, { depth: null }));
-        callback(null, result);
-      });
-    },
-    function (callback) {
-      //Task 8
-      checkNameAvailability(function (err, result, request, response) {
-        if (err) {
-          return callback(err);
-        }
-        console.log('\n' + util.inspect(result, { depth: null }));
-        callback(null, result);
-      });
-    },
-    function (callback) {
-      //Task 9
-      listUsage(function (err, result, request, response) {
-        if (err) {
-          return callback(err);
-        }
-        console.log('\n' + util.inspect(result, { depth: null }));
-        callback(null, result);
-      });
-    }
-  ], 
-  // Once above operations finish, cleanup and exit.
-  function (err, results) {
-    if (err) {
-      console.log(util.format('\n??????Error occurred in one of the operations.\n%s', 
-          util.inspect(err, { depth: null })));
-    }
-    console.log('\n###### Exit ######\n')
-    console.log(util.format('Please execute the following script for cleanup:\nnode cleanup.js %s %s', resourceGroupName, storageAccountName));
-    process.exit();
-  });
-});
+}
 
+function main() {
+  var initializePromise = initialize();
+  initializePromise.then(function (result) {
+    var userDetails = result;
+    console.log("Initialized user details");
+    // Use user details from here
+    console.log(userDetails)
+    map["name"] = "AzureStack"
+    map["portalUrl"] = userDetails.portalEndpoint // "https://adminportal.westus2.stackpoc.com/"
+    map["resourceManagerEndpointUrl"] = base_url //"https://adminmanagement.westus2.stackpoc.com/"
+    map["galleryEndpointUrl"] = userDetails.galleryEndpoint //"https://adminproviders.v.masd.stbtest.microsoft.com:30016/"
+    map["activeDirectoryEndpointUrl"] = userDetails.authentication.loginEndpoint.slice(0, userDetails.authentication.loginEndpoint.lastIndexOf("/") + 1) // "https://adfs.redmond.ext-v.masd.stbtest.microsoft.com/"
+    map["activeDirectoryResourceId"] = userDetails.authentication.audiences[0] // "https://adminmanagement.adfs.v.masd.stbtest.microsoft.com/166c49bb-cb48-4e80-abe9-d1e22c495aa5"
+    map["activeDirectoryGraphResourceId"] = userDetails.graphEndpoint // "https://graph.redmond.ext-v.masd.stbtest.microsoft.com/"
+    map["storageEndpointSuffix"] = "." + base_url.substring(base_url.indexOf('.'))  //".redmond.ext-v.masd.stbtest.microsoft.com"
+    map["keyVaultDnsSuffix"] = ".vault" + base_url.substring(base_url.indexOf('.')) //".vault.redmond.ext-v.masd.stbtest.microsoft.com"
+    map["managementEndpointUrl"] = userDetails.authentication.audiences[0] // "https://adminmanagement.adfs.v.masd.stbtest.microsoft.com/166c49bb-cb48-4e80-abe9-d1e22c495aa5"
+    map["validateAuthority"] = "false"
+    Environment.Environment.add(map);
+
+
+
+    var tokenAudience = map["activeDirectoryResourceId"] // 'https://adminmanagement.adfs.v.masd.stbtest.microsoft.com/166c49bb-cb48-4e80-abe9-d1e22c495aa5';
+
+    var options = {};
+    options["environment"] = Environment.Environment.AzureStack;
+    options["tokenAudience"] = tokenAudience;
+
+    msRestAzure.loginWithServicePrincipalSecret(clientId, secret, tenantId, options, function (err, credentials) {
+      if (err) return console.log(err);
+
+      var clientOptions = {};
+      clientOptions["baseUri"] = base_url;
+      resourceClient = new ResourceManagementClient(credentials, subscriptionId, clientOptions);
+      storageClient = new StorageManagementClient(credentials, subscriptionId, clientOptions);
+
+      // Work flow of this sample:
+      // Setup. Create a resource group 
+      // 1. Create a storage account
+      // 2. Get all the account properties
+      // 3. List all the storage accounts in a resource group
+      // 4. List all the storage accounts in a subscription
+      // 5. Get the storage account keys for a given storage account
+      // 6. Rgenerate account keys for a given storage account
+      // 7. Update storage account properties
+      // 8. Check if the storage account name is available
+      // 9. Get the current usage count and the limit for resources under the current subscription
+
+      async.series([
+        function (callback) {
+          //Setup
+          createResourceGroup(function (err, result, request, response) {
+            if (err) {
+              return callback(err);
+            }
+            callback(null, result);
+          });
+        },
+        function (callback) {
+          //Task 1
+          createStorageAccount(function (err, result, request, response) {
+            if (err) {
+              return callback(err);
+            }
+            console.log('\nThe created storage account result is: \n' + util.inspect(result, { depth: null }));
+            callback(null, result);
+          });
+        },
+        function (callback) {
+          //Task 2
+          getStorageAccount(function (err, result, request, response) {
+            if (err) {
+              return callback(err);
+            }
+            console.log('\n' + util.inspect(result, { depth: null }));
+            callback(null, result);
+          });
+        },
+        function (callback) {
+          //Task 3
+          listStorageAccountsByResourceGroup(function (err, result, request, response) {
+            if (err) {
+              return callback(err);
+            }
+            console.log('\n' + util.inspect(result, { depth: null }));
+            callback(null, result);
+          });
+        },
+        function (callback) {
+          //Task 4
+          listStorageAccounts(function (err, result, request, response) {
+            if (err) {
+              return callback(err);
+            }
+            console.log('\n' + util.inspect(result, { depth: null }));
+            callback(null, result);
+          });
+        },
+        function (callback) {
+          //Task 5
+          listStorageAccountKeys(function (err, result, request, response) {
+            if (err) {
+              return callback(err);
+            }
+            console.log('\n' + util.inspect(result, { depth: null }));
+            callback(null, result);
+          });
+        },
+        function (callback) {
+          //Task 6
+          regenerateStorageAccountKeys(function (err, result, request, response) {
+            if (err) {
+              return callback(err);
+            }
+            console.log('\n' + util.inspect(result, { depth: null }));
+            callback(null, result);
+          });
+        },
+        function (callback) {
+          //Task 7
+          updateStorageAccount(function (err, result, request, response) {
+            if (err) {
+              return callback(err);
+            }
+            console.log('\nUpdated result is:\n' + util.inspect(result, { depth: null }));
+            callback(null, result);
+          });
+        },
+        function (callback) {
+          //Task 8
+          checkNameAvailability(function (err, result, request, response) {
+            if (err) {
+              return callback(err);
+            }
+            console.log('\n' + util.inspect(result, { depth: null }));
+            callback(null, result);
+          });
+        }
+        //function (callback) {
+          //Task 9
+          //listUsage(function (err, result, request, response) {
+            //if (err) {
+              //return callback(err);
+            //}
+            //console.log('\n' + util.inspect(result, { depth: null }));
+            //callback(null, result);
+          //});
+        //}
+      ],
+        // Once above operations finish, cleanup and exit.
+        function (err, results) {
+          if (err) {
+            console.log(util.format('\n??????Error occurred in one of the operations.\n%s',
+              util.inspect(err, { depth: null })));
+          }
+          console.log('\n###### Exit ######\n')
+          console.log(util.format('Please execute the following script for cleanup:\nnode cleanup.js %s %s', resourceGroupName, storageAccountName));
+          process.exit();
+        });
+    });
+  }, function (err) {
+    console.log(err);
+  })
+}
+
+main();
 
 // Helper functions
 function createResourceGroup(callback) {
@@ -221,10 +286,10 @@ function checkNameAvailability(callback) {
   return storageClient.storageAccounts.checkNameAvailability(storageAccountName, callback);
 }
 
-function listUsage(callback) {
-  console.log('\n-->List Usage for Storage Accounts in the current subscription: \n');
-  return storageClient.usageOperations.list(callback);
-}
+//function listUsage(callback) {
+  //console.log('\n-->List Usage for Storage Accounts in the current subscription: \n');
+  //return storageClient.usageOperations.list(callback);
+//}
 
 function _validateEnvironmentVariables() {
   var envs = [];
