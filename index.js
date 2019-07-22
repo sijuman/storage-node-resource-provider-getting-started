@@ -64,21 +64,19 @@ function main() {
     // Use user details from here
     console.log(userDetails)
     map["name"] = "AzureStack"
-    map["portalUrl"] = userDetails.portalEndpoint // "https://adminportal.westus2.stackpoc.com/"
-    map["resourceManagerEndpointUrl"] = base_url //"https://adminmanagement.westus2.stackpoc.com/"
-    map["galleryEndpointUrl"] = userDetails.galleryEndpoint //"https://adminproviders.v.masd.stbtest.microsoft.com:30016/"
-    map["activeDirectoryEndpointUrl"] = userDetails.authentication.loginEndpoint.slice(0, userDetails.authentication.loginEndpoint.lastIndexOf("/") + 1) // "https://adfs.redmond.ext-v.masd.stbtest.microsoft.com/"
-    map["activeDirectoryResourceId"] = userDetails.authentication.audiences[0] // "https://adminmanagement.adfs.v.masd.stbtest.microsoft.com/166c49bb-cb48-4e80-abe9-d1e22c495aa5"
-    map["activeDirectoryGraphResourceId"] = userDetails.graphEndpoint // "https://graph.redmond.ext-v.masd.stbtest.microsoft.com/"
-    map["storageEndpointSuffix"] = "." + base_url.substring(base_url.indexOf('.'))  //".redmond.ext-v.masd.stbtest.microsoft.com"
-    map["keyVaultDnsSuffix"] = ".vault" + base_url.substring(base_url.indexOf('.')) //".vault.redmond.ext-v.masd.stbtest.microsoft.com"
-    map["managementEndpointUrl"] = userDetails.authentication.audiences[0] // "https://adminmanagement.adfs.v.masd.stbtest.microsoft.com/166c49bb-cb48-4e80-abe9-d1e22c495aa5"
+    map["portalUrl"] = userDetails.portalEndpoint 
+    map["resourceManagerEndpointUrl"] = base_url 
+    map["galleryEndpointUrl"] = userDetails.galleryEndpoint 
+    map["activeDirectoryEndpointUrl"] = userDetails.authentication.loginEndpoint.slice(0, userDetails.authentication.loginEndpoint.lastIndexOf("/") + 1) 
+    map["activeDirectoryResourceId"] = userDetails.authentication.audiences[0] 
+    map["activeDirectoryGraphResourceId"] = userDetails.graphEndpoint 
+    map["storageEndpointSuffix"] = "." + base_url.substring(base_url.indexOf('.'))  
+    map["keyVaultDnsSuffix"] = ".vault" + base_url.substring(base_url.indexOf('.')) 
+    map["managementEndpointUrl"] = userDetails.authentication.audiences[0] 
     map["validateAuthority"] = "false"
     Environment.Environment.add(map);
 
-
-
-    var tokenAudience = map["activeDirectoryResourceId"] // 'https://adminmanagement.adfs.v.masd.stbtest.microsoft.com/166c49bb-cb48-4e80-abe9-d1e22c495aa5';
+    var tokenAudience = map["activeDirectoryResourceId"]
 
     var options = {};
     options["environment"] = Environment.Environment.AzureStack;
@@ -194,16 +192,7 @@ function main() {
             callback(null, result);
           });
         }
-        //function (callback) {
-          //Task 9
-          //listUsage(function (err, result, request, response) {
-            //if (err) {
-              //return callback(err);
-            //}
-            //console.log('\n' + util.inspect(result, { depth: null }));
-            //callback(null, result);
-          //});
-        //}
+  
       ],
         // Once above operations finish, cleanup and exit.
         function (err, results) {
@@ -285,11 +274,6 @@ function checkNameAvailability(callback) {
   console.log('\n-->Checking if the storage account name : ' + storageAccountName + ' is available.');
   return storageClient.storageAccounts.checkNameAvailability(storageAccountName, callback);
 }
-
-//function listUsage(callback) {
-  //console.log('\n-->List Usage for Storage Accounts in the current subscription: \n');
-  //return storageClient.usageOperations.list(callback);
-//}
 
 function _validateEnvironmentVariables() {
   var envs = [];
