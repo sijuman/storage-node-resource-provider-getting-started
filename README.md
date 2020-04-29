@@ -36,10 +36,12 @@ To run this sample:
 
 5. Set the following environment variables using the information from the service principal that you created.
 
-	    export AZURE_SUBSCRIPION_ID={your subscription id}
+	    export SUBSCRIPION_ID={your subscription id}
 	    export CLIENT_ID={your client id}
-	    export APPLICATION_SECRET={your client secret}
-	    export DOMAIN={your tenant id as a guid OR the domain name of your org <contosocorp.com>}
+	    export CLIENT_SECRET={your client secret}
+	    export TENANT_ID={your tenant id as a guid OR the domain name of your org <contosocorp.com>}
+	    export ARM_ENDPOINT={your client id}
+        export LOCATION={your azurestack environment region/location}
 
     > [AZURE.NOTE] On Windows, use `set` instead of `export`.
 
@@ -59,9 +61,10 @@ The sample starts by logging in using your service principal and creating Resour
 
 	_validateEnvironmentVariables();
 	var clientId = process.env['CLIENT_ID'];
-	var domain = process.env['DOMAIN'];
-	var secret = process.env['APPLICATION_SECRET'];
-	var subscriptionId = process.env['AZURE_SUBSCRIPTION_ID'];
+	var domain = process.env['TENANT_ID'];
+	var secret = process.env['CLIENT_SECRET'];
+	var subscriptionId = process.env['SUBSCRIPTION_ID'];
+    var location = process.env['LOCATION'];
 	var resourceClient, webSiteClient;
 	//Sample Config
 	var randomIds = {};
